@@ -1,125 +1,61 @@
 import asyncio
-import aiohttp
-import os
 from telegram import Bot
-from datetime import datetime
+import aiohttp
 
-# =====================
-# ENV (Railway)
-# =====================
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
-
-if not BOT_TOKEN or not CHAT_ID:
-    raise Exception("❌ Нет BOT_TOKEN или CHAT_ID в переменных Railway")
-
-CHAT_ID = int(CHAT_ID)
-
-# =====================
-# CONFIG
-# =====================
+# 🔹 Токен и ID напрямую
+BOT_TOKEN = "8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA"
+CHAT_ID = 8102460194  # int
 
 BASE_URL = "https://agropraktika.eu/vacancies"
-CHECK_INTERVAL = 60
+CHECK_INTERVAL = 60  # проверка каждые 60 секунд
+PAGES = 2  # всего 2 страницы
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0",
-    "Accept-Language": "ru-RU,ru;q=0.9"
-}
+bot = Bot("8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA")
 
-bot = Bot(token=BOT_TOKEN)
+previous_counts = {}
 
-previous_status = {}
+async def get_counts(session):
+    counts = {}
+    for page in range(1, PAGES + 1):
+        url = f"{BASE_URL}?page={page}"
+        async with session.get(url) as response:
+            html = await response.text()
+            count = html.count("Регистрация временно приостановлена")
+            counts[page] = count
+    return counts
 
-# =====================
-# LOG
-# =====================
-
-def log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
-
-# =====================
-# FETCH (anti 403 retry)
-# =====================
-
-async def fetch(session):
-    url = BASE_URL
-
-    for attempt in range(3):
-        try:
-            async with session.get(url, headers=HEADERS, timeout=20) as r:
-
-                if r.status == 403:
-                    log(f"403 получен, попытка {attempt+1}/3 → жду 120 сек")
-                    await asyncio.sleep(120)
-                    continue
-
-                if r.status != 200:
-                    log(f"HTTP ошибка: {r.status}")
-                    return None
-
-                return await r.text()
-
-        except Exception as e:
-            log(f"Ошибка запроса: {e}")
-            await asyncio.sleep(10)
-
-    return None
-
-# =====================
-# STATUS CHECK
-# =====================
-
-def is_closed(html):
-    return "регистрация временно приостановлена" in html.lower()
-
-# =====================
-# LOOP
-# =====================
-
-async def loop():
-    global previous_status
-
+async def check():
+    global previous_counts
     async with aiohttp.ClientSession() as session:
-
-        await bot.send_message(CHAT_ID, "🤖 Бот запущен")
-
         while True:
             try:
-                html = await fetch(session)
+                current_counts = await get_counts(session)
 
-                if not html:
-                    await asyncio.sleep(CHECK_INTERVAL)
-                    continue
+                # первый запуск
+                if not previous_counts:
+                    previous_counts = current_counts
 
-                closed = is_closed(html)
-                prev = previous_status.get("main")
+                else:
+                    for page in current_counts:
+                        if current_counts[page] < previous_counts[page]:
+                            # отправляем 3 сообщения подряд
+                            for _ in range(3):
+                                await bot.send_message(
+                                    chat_id=CHAT_ID,
+                                    text=f"🚨 РЕГИСТРАЦИЯ ОТКРЫЛАСЬ!\nСтраница: {page}\n{BASE_URL}?page={page}"
+                                )
+                                await asyncio.sleep(1)
 
-                # ОТКРЫЛОСЬ
-                if prev is True and closed is False:
-                    log("🔥 РЕГИСТРАЦИЯ ОТКРЫЛАСЬ")
-
-                    await bot.send_message(
-                        CHAT_ID,
-                        f"🚨 РЕГИСТРАЦИЯ ОТКРЫЛАСЬ!\n{BASE_URL}"
-                    )
-
-                previous_status["main"] = closed
-
-                log("проверка завершена")
+                    previous_counts = current_counts
 
             except Exception as e:
-                log(f"Критическая ошибка: {e}")
+                await bot.send_message(chat_id=CHAT_ID, text=f"Ошибка: {e}")
 
             await asyncio.sleep(CHECK_INTERVAL)
 
-# =====================
-# START
-# =====================
-
 async def main():
-    await loop()
+    await bot.send_message(chat_id=CHAT_ID, text="Бот запущен и следит за 2 страницами")
+    await check()
 
-if __name__ == "__main__":
+if name == "main":
     asyncio.run(main())
