@@ -4,11 +4,11 @@ import aiohttp
 
 # 🔹 Токен и ID напрямую
 BOT_TOKEN = "8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA"
-CHAT_ID = 8102460194  # int
+CHAT_ID = 6318865778  # int
 
 BASE_URL = "https://agropraktika.eu/vacancies"
 CHECK_INTERVAL = 60  # проверка каждые 60 секунд
-PAGES = 2  # всего 2 страницы
+PAGES = 3  # всего 2 страницы
 
 bot = Bot("8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA")
 
