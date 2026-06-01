@@ -2,14 +2,14 @@ import asyncio
 from telegram import Bot
 import aiohttp
 
-BOT_TOKEN = "YOUR_NEW_TOKEN_HERE"
+BOT_TOKEN = "8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA"
 CHAT_ID = 6318865778
 
 BASE_URL = "https://agropraktika.eu/vacancies"
 CHECK_INTERVAL = 60
 PAGES = 3
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot("8787982429:AAGpfzIibK7e58YtvAl6g5m1EG2sZtEdFYA")
 
 previous_counts = {}
 
