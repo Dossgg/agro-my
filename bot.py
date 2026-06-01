@@ -57,5 +57,4 @@ async def main():
     await bot.send_message(chat_id=CHAT_ID, text="Бот запущен и следит за 2 страницами")
     await check()
 
-if name == "main":
-    asyncio.run(main())
+if __name__ == "__main__":  # 
